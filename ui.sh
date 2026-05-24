@@ -1,14 +1,18 @@
 #!/bin/bash
 set -e
 source /venv/main/bin/activate
+
 WORKSPACE=${WORKSPACE:-/workspace}
 COMFYUI_DIR="${WORKSPACE}/ComfyUI"
-echo "=== ComfyUI запускает ( x-mode) ==="
+
+echo "=== ComfyUI запускається (X-MODE) ==="
 
 APT_PACKAGES=()
 PIP_PACKAGES=()
 
+# Ноди — Manager стоїть ПЕРШИМ (одразу останній)
 NODES=(
+    "https://github.com/ltdrdata/ComfyUI-Manager"                    # ← Останній ComfyUI Manager
     "https://github.com/kijai/ComfyUI-WanVideoWrapper"
     "https://github.com/chflame163/ComfyUI_LayerStyle"
     "https://github.com/yolain/ComfyUI-Easy-Use"
@@ -23,21 +27,17 @@ NODES=(
     "https://github.com/teskor-hub/NEW-UTILS.git"
 )
 
-# === МОДЕЛІ (залишив усі твої URL) ===
+# Моделі та файли
 CLIP_MODELS=(
     "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/klip_vision.safetensors"
 )
 
-CLIPS=(
-"https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors"
+CLIP_VISION=(
+    "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors"
 )
 
 TEXT_ENCODERS=(
-"https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/text_enc.safetensors"
-)
-
-UNET_MODELS=(
-    "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_bf16.safetensors"
+    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/text_enc.safetensors"
 )
 
 VAE_MODELS=(
@@ -45,28 +45,21 @@ VAE_MODELS=(
 )
 
 DETECTION_MODELS=(
-"https://huggingface.co/Wan-AI/Wan2.2-Animate-14B/resolve/main/process_checkpoint/det/yolov10m.onnx"
-"https://huggingface.co/Kijai/vitpose_comfy/resolve/main/onnx/vitpose_h_wholebody_data.bin"
-"https://huggingface.co/Kijai/vitpose_comfy/resolve/main/onnx/vitpose_h_wholebody_model.onnx"
+    "https://huggingface.co/Wan-AI/Wan2.2-Animate-14B/resolve/main/process_checkpoint/det/yolov10m.onnx"
+    "https://huggingface.co/Kijai/vitpose_comfy/resolve/main/onnx/vitpose_h_wholebody_data.bin"
+    "https://huggingface.co/Kijai/vitpose_comfy/resolve/main/onnx/vitpose_h_wholebody_model.onnx"
 )
 
 LORAS=(
-"https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/WanFun.reworked.safetensors"
-"https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/light.safetensors"
-"https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/WanPusa.safetensors"
-"https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/wan.reworked.safetensors"
-)
-
-CLIP_VISION=(
-"https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/klip_vision.safetensors"
+    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/WanFun.reworked.safetensors"
+    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/light.safetensors"
+    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/WanPusa.safetensors"
+    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/wan.reworked.safetensors"
 )
 
 DEFFUSION=(
-"https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/WanModel.safetensors"
+    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/WanModel.safetensors"
 )
-
-# Фікс критичної помилки — тепер DIFFUSION_MODELS визначений (використовується в виклику)
-DIFFUSION_MODELS=("${UNET_MODELS[@]}")
 
 ### ─────────────────────────────────────────────
 ### DO NOT EDIT BELOW UNLESS YOU KNOW WHAT YOU ARE DOING
@@ -75,8 +68,9 @@ DIFFUSION_MODELS=("${UNET_MODELS[@]}")
 function provisioning_start() {
     echo ""
     echo "##############################################"
-    echo "# ебашим жоска и мрачно #"
-    echo "# gazik X-MODE setup 2025-2026 #"
+    echo "#     ебашим жоска и мрачно                  #"
+    echo "#        gazik X-MODE setup 2025-2026        #"
+    echo "#             бабки бабки                    #"
     echo "##############################################"
     echo ""
 
@@ -85,25 +79,23 @@ function provisioning_start() {
     provisioning_install_base_reqs
     provisioning_get_nodes
     provisioning_get_pip_packages
+
     provisioning_get_files "${COMFYUI_DIR}/models/clip" "${CLIP_MODELS[@]}"
     provisioning_get_files "${COMFYUI_DIR}/models/clip_vision" "${CLIP_VISION[@]}"
     provisioning_get_files "${COMFYUI_DIR}/models/text_encoders" "${TEXT_ENCODERS[@]}"
     provisioning_get_files "${COMFYUI_DIR}/models/vae" "${VAE_MODELS[@]}"
-    provisioning_get_files "${COMFYUI_DIR}/models/diffusion_models" "${DIFFUSION_MODELS[@]}"
     provisioning_get_files "${COMFYUI_DIR}/models/detection" "${DETECTION_MODELS[@]}"
     provisioning_get_files "${COMFYUI_DIR}/models/loras" "${LORAS[@]}"
     provisioning_get_files "${COMFYUI_DIR}/models/diffusion_models" "${DEFFUSION[@]}"
 
     echo ""
-    echo "Газик настроил → Starting ComfyUI..."
+    echo "Газик все настроїв → Запускаємо ComfyUI..."
     echo ""
 }
 
-# (всі функції provisioning_clone_comfyui, provisioning_get_nodes, provisioning_get_files тощо — ТОЧНО ТАКІ Ж, як у тебе, без жодних змін)
-
 function provisioning_clone_comfyui() {
     if [[ ! -d "${COMFYUI_DIR}" ]]; then
-        echo "Газик клонирует ComfyUI..."
+        echo "Газик клоную ComfyUI..."
         git clone https://github.com/comfyanonymous/ComfyUI.git "${COMFYUI_DIR}"
     fi
     cd "${COMFYUI_DIR}"
@@ -111,21 +103,21 @@ function provisioning_clone_comfyui() {
 
 function provisioning_install_base_reqs() {
     if [[ -f requirements.txt ]]; then
-        echo "Газик установливает base requirements..."
+        echo "Газик встановлює base requirements..."
         pip install --no-cache-dir -r requirements.txt
     fi
 }
 
 function provisioning_get_apt_packages() {
     if [[ ${#APT_PACKAGES[@]} -gt 0 ]]; then
-        echo "Газик устанавливает apt packages..."
+        echo "Газик встановлює apt packages..."
         sudo apt update && sudo apt install -y "${APT_PACKAGES[@]}"
     fi
 }
 
 function provisioning_get_pip_packages() {
     if [[ ${#PIP_PACKAGES[@]} -gt 0 ]]; then
-        echo "Газик устанавливает extra pip packages..."
+        echo "Газик встановлює extra pip packages..."
         pip install --no-cache-dir "${PIP_PACKAGES[@]}"
     fi
 }
@@ -133,9 +125,12 @@ function provisioning_get_pip_packages() {
 function provisioning_get_nodes() {
     mkdir -p "${COMFYUI_DIR}/custom_nodes"
     cd "${COMFYUI_DIR}/custom_nodes"
+
     for repo in "${NODES[@]}"; do
         dir="${repo##*/}"
+        dir="${dir%.git}"  # прибираємо .git якщо є
         path="./${dir}"
+
         if [[ -d "$path" ]]; then
             echo "Updating node: $dir"
             (cd "$path" && git pull --ff-only 2>/dev/null || { git fetch && git reset --hard origin/main; })
@@ -143,6 +138,7 @@ function provisioning_get_nodes() {
             echo "Cloning node: $dir"
             git clone "$repo" "$path" --recursive || echo " [!] Clone failed: $repo"
         fi
+
         requirements="${path}/requirements.txt"
         if [[ -f "$requirements" ]]; then
             echo "Installing deps for $dir..."
@@ -157,7 +153,8 @@ function provisioning_get_files() {
     shift
     local files=("$@")
     mkdir -p "$dir"
-    echo "Скачивание ${#files[@]} file(s) → $dir..."
+    echo "Скачивання ${#files[@]} файлів → $dir..."
+
     for url in "${files[@]}"; do
         echo "→ $url"
         local auth_header=""
@@ -171,10 +168,12 @@ function provisioning_get_files() {
     done
 }
 
+# Запуск provisioning
 if [[ ! -f /.noprovisioning ]]; then
     provisioning_start
 fi
 
-echo "=== Газик запускает ComfyUI ==="
+# Запуск ComfyUI
+echo "=== Газик запускає ComfyUI ==="
 cd "${COMFYUI_DIR}"
 python main.py --listen 0.0.0.0 --port 8188
