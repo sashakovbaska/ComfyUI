@@ -6,6 +6,11 @@ COMFYUI_DIR="${WORKSPACE}/ComfyUI"
 
 echo "=== ComfyUI Gazik X-MODE 2026 ==="
 
+# ─────────────────────────────────────────────
+# 1. Сказати Vast.ai: "provisioning йде, не запускай ComfyUI"
+# ─────────────────────────────────────────────
+touch /.provisioning
+
 APT_PACKAGES=(
     "aria2"
     "ffmpeg"
@@ -30,21 +35,11 @@ NODES=(
 )
 
 # ====================== ВСІ ТВОЇ МОДЕЛІ ======================
-CLIP_MODELS=(
-    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/klip_vision.safetensors"
-)
-CLIPS=(
-    "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors"
-)
-TEXT_ENCODERS=(
-    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/text_enc.safetensors"
-)
-UNET_MODELS=(
-    "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_bf16.safetensors"
-)
-VAE_MODELS=(
-    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/vae.safetensors"
-)
+CLIP_MODELS=("https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/klip_vision.safetensors")
+CLIPS=("https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors")
+TEXT_ENCODERS=("https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/text_enc.safetensors")
+UNET_MODELS=("https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_bf16.safetensors")
+VAE_MODELS=("https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/vae.safetensors")
 DETECTION_MODELS=(
     "https://huggingface.co/Wan-AI/Wan2.2-Animate-14B/resolve/main/process_checkpoint/det/yolov10m.onnx"
     "https://huggingface.co/Kijai/vitpose_comfy/resolve/main/onnx/vitpose_h_wholebody_data.bin"
@@ -57,12 +52,8 @@ LORAS=(
     "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/WanPusa.safetensors"
     "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/wan.reworked.safetensors"
 )
-CLIP_VISION=(
-    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/klip_vision.safetensors"
-)
-DEFFUSION=(
-    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/WanModel.safetensors"
-)
+CLIP_VISION=("https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/klip_vision.safetensors")
+DEFFUSION=("https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/WanModel.safetensors")
 # ============================================================
 
 function provisioning_start() {
@@ -78,7 +69,7 @@ function provisioning_start() {
     provisioning_get_nodes
     provisioning_get_pip_packages
 
-    echo "⏳ Починаємо скачування ВСІХ моделей... (це може зайняти від 5 до 40 хвилин)"
+    echo "⏳ Починаємо скачування ВСІХ моделей... (aria2c)"
     echo ""
 
     provisioning_get_files "${COMFYUI_DIR}/models/clip" "${CLIP_MODELS[@]}"
@@ -93,18 +84,25 @@ function provisioning_start() {
 
     echo ""
     echo "✅ ВСІ моделі успішно завантажені!"
-    echo "   ComfyUI зараз запуститься..."
+    echo "   Видаляємо блокування → ComfyUI зараз запуститься..."
     echo ""
+
+    # ─────────────────────────────────────────────
+    # 2. Дозволяємо Vast.ai запустити ComfyUI
+    # ─────────────────────────────────────────────
+    rm -f /.provisioning
 }
 
-# (всі інші функції залишаються такими ж, як у попередньому скрипті)
+# ==================== ФУНКЦІЇ (не чіпай) ====================
 function provisioning_clone_comfyui() {
     if [[ ! -d "${COMFYUI_DIR}" ]]; then
         echo "Клонуємо ComfyUI..."
         git clone https://github.com/comfyanonymous/ComfyUI.git "${COMFYUI_DIR}"
     else
-        echo "Оновлюємо ComfyUI..."
-        (cd "${COMFYUI_DIR}" && git pull --ff-only 2>/dev/null || git reset --hard origin/main)
+        echo "Оновлюємо ComfyUI (master)..."
+        cd "${COMFYUI_DIR}"
+        git fetch --all --prune
+        git reset --hard origin/master || git reset --hard origin/main
     fi
     cd "${COMFYUI_DIR}"
 }
@@ -141,11 +139,11 @@ function provisioning_get_nodes() {
             (cd "$path" && git pull --ff-only 2>/dev/null || { git fetch && git reset --hard origin/main; })
         else
             echo "Клонуємо ноду: $dir"
-            git clone "$repo" "$path" --recursive --depth 1 || echo " [!] Clone failed: $repo"
+            git clone "$repo" "$path" --recursive --depth 1
         fi
         if [[ -f "$path/requirements.txt" ]]; then
             echo "Встановлюємо залежності $dir..."
-            pip install --no-cache-dir -r "$path/requirements.txt" || echo " [!] pip failed for $dir"
+            pip install --no-cache-dir -r "$path/requirements.txt" || true
         fi
     done
 }
@@ -155,7 +153,7 @@ function provisioning_get_files() {
     local dir="$1"
     shift
     mkdir -p "$dir"
-    echo "📥 Завантажуємо ${#@} файлів → $dir (aria2c 16x)..."
+    echo "📥 Завантажуємо ${#@} файлів → $dir"
 
     for url in "$@"; do
         echo "→ $url"
@@ -166,7 +164,6 @@ function provisioning_get_files() {
             auth_header="--header=Authorization: Bearer $CIVITAI_TOKEN"
         fi
 
-        # ⚠️ Без || — якщо не скачається, скрипт зупиниться
         aria2c --console-log-level=error --summary-interval=0 \
                --continue --max-connection-per-server=16 --min-split-size=1M \
                --max-concurrent-downloads=16 --split=16 \
@@ -174,9 +171,11 @@ function provisioning_get_files() {
     done
 }
 
-# Головний запуск
+# =============================================
 if [[ ! -f /.noprovisioning ]]; then
     provisioning_start
+else
+    echo "🚫 Provisioning вимкнено (/.noprovisioning знайдено)"
 fi
 
 echo "=== Gazik запускає ComfyUI ==="
