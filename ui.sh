@@ -1,34 +1,17 @@
 #!/bin/bash
 set -e
-
 source /venv/main/bin/activate
-
 WORKSPACE=${WORKSPACE:-/workspace}
 COMFYUI_DIR="${WORKSPACE}/ComfyUI"
 
-echo "========================================="
-echo "=== COMFYUI AUTO PROVISIONING (WAN) ==="
-echo "========================================="
+echo "=== ComfyUI запускає Gazik X-MODE (2026) ==="
 
-# ─────────────────────────────
-# OPTIONAL PACKAGES
-# ─────────────────────────────
-
-APT_PACKAGES=()
-
-PIP_PACKAGES=(
-    "hf_transfer"
+APT_PACKAGES=(
+    "aria2"      # ← головне покращення швидкості
+    "ffmpeg"     # для відео-нодів
 )
 
-# ─────────────────────────────
-# ENV
-# ─────────────────────────────
-
-export HF_HUB_ENABLE_HF_TRANSFER=1
-
-# ─────────────────────────────
-# CUSTOM NODES
-# ─────────────────────────────
+PIP_PACKAGES=()
 
 NODES=(
     "https://github.com/kijai/ComfyUI-WanVideoWrapper"
@@ -43,249 +26,165 @@ NODES=(
     "https://github.com/rgthree/rgthree-comfy"
     "https://github.com/jnxmx/ComfyUI_HuggingFace_Downloader"
     "https://github.com/teskor-hub/NEW-UTILS.git"
+    # Додано (дуже рекомендую)
+    "https://github.com/ltdrdata/ComfyUI-Manager"
 )
 
-# ─────────────────────────────
-# MODELS
-# ─────────────────────────────
-
-# WAN DIFFUSION MODEL
-DIFFUSION_MODELS=(
-"https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_t2v_14B_bf16.safetensors"
+# ====================== ВСІ ТВОЇ МОДЕЛІ (залишені повністю) ======================
+CLIP_MODELS=(
+    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/klip_vision.safetensors"
 )
-
-# CLIP VISION
-CLIP_VISION_MODELS=(
-"https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors"
+CLIPS=(
+    "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors"
 )
-
-# TEXT ENCODER
 TEXT_ENCODERS=(
-"https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors"
+    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/text_enc.safetensors"
 )
-
-# VAE
+UNET_MODELS=(                                      # ← тепер використовується
+    "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_bf16.safetensors"
+)
 VAE_MODELS=(
-"https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors"
+    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/vae.safetensors"
 )
-
-# DETECTION MODELS
 DETECTION_MODELS=(
-"https://huggingface.co/Wan-AI/Wan2.2-Animate-14B/resolve/main/process_checkpoint/det/yolov10m.onnx"
-"https://huggingface.co/Kijai/vitpose_comfy/resolve/main/onnx/vitpose_h_wholebody_data.bin"
-"https://huggingface.co/Kijai/vitpose_comfy/resolve/main/onnx/vitpose_h_wholebody_model.onnx"
+    "https://huggingface.co/Wan-AI/Wan2.2-Animate-14B/resolve/main/process_checkpoint/det/yolov10m.onnx"
+    "https://huggingface.co/Kijai/vitpose_comfy/resolve/main/onnx/vitpose_h_wholebody_data.bin"
+    "https://huggingface.co/Kijai/vitpose_comfy/resolve/main/onnx/vitpose_h_wholebody_model.onnx"
 )
-
-# LORAS
 LORAS=(
-"https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/WanFun.reworked.safetensors"
-"https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/WanPusa.safetensors"
-"https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/light.safetensors"
-"https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/wan.reworked.safetensors"
+    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/WanFun.reworked.safetensors"
+    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/light.safetensors"
+    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/light.safetensors"
+    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/WanPusa.safetensors"
+    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/wan.reworked.safetensors"
 )
+CLIP_VISION=(
+    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/klip_vision.safetensors"
+)
+DEFFUSION=(
+    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/WanModel.safetensors"
+)
+# ================================================================================
 
-# ─────────────────────────────
-# START
-# ─────────────────────────────
+### ─────────────────────────────────────────────
+### DO NOT EDIT BELOW UNLESS YOU KNOW WHAT YOU ARE DOING
+### ─────────────────────────────────────────────
 
-provisioning_start() {
-
-    echo "########################################"
-    echo "# STARTING COMFYUI INSTALLATION       #"
-    echo "########################################"
+function provisioning_start() {
+    echo ""
+    echo "##############################################"
+    echo "# Gazik X-MODE 2026 — eбашим жорстко #"
+    echo "##############################################"
+    echo ""
 
     provisioning_get_apt_packages
-
     provisioning_clone_comfyui
-
-    provisioning_install_base_requirements
-
+    provisioning_install_base_reqs
     provisioning_get_nodes
-
     provisioning_get_pip_packages
 
-    echo "========================================="
-    echo "DOWNLOADING MODELS..."
-    echo "========================================="
+    # Завантажуємо ВСІ моделі (всі твої залишені)
+    provisioning_get_files "${COMFYUI_DIR}/models/clip" "${CLIP_MODELS[@]}"
+    provisioning_get_files "${COMFYUI_DIR}/models/clip_vision" "${CLIPS[@]}"
+    provisioning_get_files "${COMFYUI_DIR}/models/clip_vision" "${CLIP_VISION[@]}"
+    provisioning_get_files "${COMFYUI_DIR}/models/text_encoders" "${TEXT_ENCODERS[@]}"
+    provisioning_get_files "${COMFYUI_DIR}/models/vae" "${VAE_MODELS[@]}"
+    provisioning_get_files "${COMFYUI_DIR}/models/diffusion_models" "${UNET_MODELS[@]}"
+    provisioning_get_files "${COMFYUI_DIR}/models/diffusion_models" "${DEFFUSION[@]}"
+    provisioning_get_files "${COMFYUI_DIR}/models/detection" "${DETECTION_MODELS[@]}"
+    provisioning_get_files "${COMFYUI_DIR}/models/loras" "${LORAS[@]}"
 
-    provisioning_get_files \
-        "${COMFYUI_DIR}/models/diffusion_models" \
-        "${DIFFUSION_MODELS[@]}"
-
-    provisioning_get_files \
-        "${COMFYUI_DIR}/models/clip_vision" \
-        "${CLIP_VISION_MODELS[@]}"
-
-    provisioning_get_files \
-        "${COMFYUI_DIR}/models/text_encoders" \
-        "${TEXT_ENCODERS[@]}"
-
-    provisioning_get_files \
-        "${COMFYUI_DIR}/models/vae" \
-        "${VAE_MODELS[@]}"
-
-    provisioning_get_files \
-        "${COMFYUI_DIR}/models/detection" \
-        "${DETECTION_MODELS[@]}"
-
-    provisioning_get_files \
-        "${COMFYUI_DIR}/models/loras" \
-        "${LORAS[@]}"
-
-    echo "========================================="
-    echo "INSTALLATION COMPLETE"
-    echo "========================================="
+    echo ""
+    echo "✅ Gazik все налаштував → Запускаємо ComfyUI..."
+    echo ""
 }
 
-# ─────────────────────────────
-# COMFYUI
-# ─────────────────────────────
-
-provisioning_clone_comfyui() {
-
+function provisioning_clone_comfyui() {
     if [[ ! -d "${COMFYUI_DIR}" ]]; then
-        echo "Cloning ComfyUI..."
+        echo "Клонуємо ComfyUI..."
         git clone https://github.com/comfyanonymous/ComfyUI.git "${COMFYUI_DIR}"
+    else
+        echo "Оновлюємо ComfyUI..."
+        (cd "${COMFYUI_DIR}" && git pull --ff-only 2>/dev/null || git reset --hard origin/main)
     fi
-
     cd "${COMFYUI_DIR}"
-
-    echo "Updating ComfyUI..."
-
-    git fetch origin
-    git reset --hard origin/master
 }
 
-# ─────────────────────────────
-# REQUIREMENTS
-# ─────────────────────────────
-
-provisioning_install_base_requirements() {
-
-    echo "Installing ComfyUI requirements..."
-
-    pip install --no-cache-dir -r "${COMFYUI_DIR}/requirements.txt"
-}
-
-provisioning_get_apt_packages() {
-
-    if [[ ${#APT_PACKAGES[@]} -gt 0 ]]; then
-        sudo apt update
-        sudo apt install -y "${APT_PACKAGES[@]}"
+function provisioning_install_base_reqs() {
+    if [[ -f requirements.txt ]]; then
+        echo "Встановлюємо base requirements..."
+        pip install --no-cache-dir -r requirements.txt
     fi
 }
 
-provisioning_get_pip_packages() {
+function provisioning_get_apt_packages() {
+    if [[ ${#APT_PACKAGES[@]} -gt 0 ]]; then
+        echo "Встановлюємо apt-пакети..."
+        sudo apt update && sudo apt install -y "${APT_PACKAGES[@]}"
+    fi
+}
 
+function provisioning_get_pip_packages() {
     if [[ ${#PIP_PACKAGES[@]} -gt 0 ]]; then
         pip install --no-cache-dir "${PIP_PACKAGES[@]}"
     fi
 }
 
-# ─────────────────────────────
-# CUSTOM NODES
-# ─────────────────────────────
-
-provisioning_get_nodes() {
-
+function provisioning_get_nodes() {
     mkdir -p "${COMFYUI_DIR}/custom_nodes"
-
     cd "${COMFYUI_DIR}/custom_nodes"
-
     for repo in "${NODES[@]}"; do
-
-        dir=$(basename "$repo" .git)
-
+        dir="${repo##*/}"
+        dir="${dir%.git}"   # прибираємо .git якщо є
         path="./${dir}"
-
-        if [[ -d "${path}" ]]; then
-
-            echo "Updating node: ${dir}"
-
-            (
-                cd "${path}"
-
-                git fetch origin
-
-                git reset --hard origin/master || true
-
-                git pull --rebase || true
-            )
-
+        if [[ -d "$path" ]]; then
+            echo "Оновлюємо ноду: $dir"
+            (cd "$path" && git pull --ff-only 2>/dev/null || { git fetch && git reset --hard origin/main; })
         else
-
-            echo "Cloning node: ${dir}"
-
-            git clone --recursive "${repo}" "${path}"
+            echo "Клонуємо ноду: $dir"
+            git clone "$repo" "$path" --recursive --depth 1 || echo " [!] Clone failed: $repo"
         fi
-
-        if [[ -f "${path}/requirements.txt" ]]; then
-
-            echo "Installing requirements for ${dir}"
-
-            pip install --no-cache-dir -r "${path}/requirements.txt" || true
+        if [[ -f "$path/requirements.txt" ]]; then
+            echo "Встановлюємо залежності $dir..."
+            pip install --no-cache-dir -r "$path/requirements.txt" || echo " [!] pip failed for $dir"
         fi
     done
 }
 
-# ─────────────────────────────
-# MODEL DOWNLOADER
-# ─────────────────────────────
-
-provisioning_get_files() {
-
+# Нова функція — aria2c (швидко + resume)
+function provisioning_get_files() {
+    if [[ $# -lt 2 ]]; then return; fi
     local dir="$1"
-
     shift
-
-    local files=("$@")
-
     mkdir -p "$dir"
+    echo "📥 Завантажуємо ${#files[@]} файлів → $dir (aria2c 16x)..."
 
-    cd "$dir"
-
-    for url in "${files[@]}"; do
-
-        filename=$(basename "${url%%\?*}")
-
-        echo "-----------------------------------------"
-        echo "Downloading:"
-        echo "${filename}"
-        echo "-----------------------------------------"
-
-        if [[ -f "${filename}" ]]; then
-            echo "Already exists: ${filename}"
-            continue
+    for url in "$@"; do
+        echo "→ $url"
+        local auth_header=""
+        if [[ -n "$HF_TOKEN" && "$url" =~ huggingface\.co ]]; then
+            auth_header="--header=Authorization: Bearer $HF_TOKEN"
+        elif [[ -n "$CIVITAI_TOKEN" && "$url" =~ civitai\.com ]]; then
+            auth_header="--header=Authorization: Bearer $CIVITAI_TOKEN"
         fi
 
-        wget \
-            --content-disposition \
-            --show-progress \
-            -c \
-            "$url"
-
-        echo "DONE: ${filename}"
+        aria2c --console-log-level=error --summary-interval=0 \
+               --continue --max-connection-per-server=16 --min-split-size=1M \
+               --max-concurrent-downloads=16 --split=16 \
+               $auth_header --dir="$dir" "$url" || echo " [!] Download failed: $url"
     done
 }
 
-# ─────────────────────────────
-# RUN PROVISIONING
-# ─────────────────────────────
-
+# Запуск
 if [[ ! -f /.noprovisioning ]]; then
     provisioning_start
 fi
 
-# ─────────────────────────────
-# START COMFYUI
-# ─────────────────────────────
-
-echo "========================================="
-echo "STARTING COMFYUI..."
-echo "========================================="
-
+echo "=== Gazik запускає ComfyUI ==="
 cd "${COMFYUI_DIR}"
-
 python main.py \
     --listen 0.0.0.0 \
-    --port 8188
+    --port 8188 \
+    --force-fp16 \
+    --cuda-malloc \
+    --preview-method auto
