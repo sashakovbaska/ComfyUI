@@ -5,14 +5,12 @@ source /venv/main/bin/activate
 WORKSPACE=${WORKSPACE:-/workspace}
 COMFYUI_DIR="${WORKSPACE}/ComfyUI"
 
-echo "=== ComfyUI запускається (X-MODE) ==="
+echo "=== ComfyUI запускает ( x-mode) ==="
 
-APT_PACKAGES=()
-PIP_PACKAGES=()
+APT_PACKAGES=()           # если нужно — добавь sudo apt install ...
+PIP_PACKAGES=()           # глобальные pip пакеты, если сверх requirements
 
-# Ноди — Manager стоїть ПЕРШИМ (одразу останній)
 NODES=(
-    "https://github.com/ltdrdata/ComfyUI-Manager"                    # ← Останній ComfyUI Manager
     "https://github.com/kijai/ComfyUI-WanVideoWrapper"
     "https://github.com/chflame163/ComfyUI_LayerStyle"
     "https://github.com/yolain/ComfyUI-Easy-Use"
@@ -24,43 +22,47 @@ NODES=(
     "https://github.com/kijai/ComfyUI-WanAnimatePreprocess"
     "https://github.com/rgthree/rgthree-comfy"
     "https://github.com/jnxmx/ComfyUI_HuggingFace_Downloader"
-    "https://github.com/teskor-hub/NEW-UTILS.git"
+    "https://github.com/hanjangma41/NEW-UTILSs.git"
 )
 
-# Моделі та файли
+# ЗАГРУЗКА ФАЙЛОВ НУЖНЫХ
 CLIP_MODELS=(
-    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/klip_vision.safetensors"
-)
-
-CLIP_VISION=(
+    "https://huggingface.co/f5aiteam/CLIP/resolve/main/umt5_xxl_fp8_e4m3fn_scaled.safetensors"
     "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors"
 )
-
-TEXT_ENCODERS=(
-    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/text_enc.safetensors"
+CLIPS=(
+"https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors"
+)
+UNET_MODELS=(
+    "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_bf16.safetensors"
 )
 
 VAE_MODELS=(
-    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/vae.safetensors"
+    "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors"
 )
 
 DETECTION_MODELS=(
-    "https://huggingface.co/Wan-AI/Wan2.2-Animate-14B/resolve/main/process_checkpoint/det/yolov10m.onnx"
-    "https://huggingface.co/Kijai/vitpose_comfy/resolve/main/onnx/vitpose_h_wholebody_data.bin"
-    "https://huggingface.co/Kijai/vitpose_comfy/resolve/main/onnx/vitpose_h_wholebody_model.onnx"
+"https://huggingface.co/Kijai/WanVideo_comfy_fp8_scaled/resolve/main/Wan22Animate/Wan2_2-Animate-14B_fp8_scaled_e4m3fn_KJ_v2.safetensors"
+"https://huggingface.co/Wan-AI/Wan2.2-Animate-14B/resolve/main/process_checkpoint/det/yolov10m.onnx"
+"https://huggingface.co/Kijai/vitpose_comfy/resolve/main/onnx/vitpose_h_wholebody_data.bin"
+"https://huggingface.co/Kijai/vitpose_comfy/resolve/main/onnx/vitpose_h_wholebody_model.onnx"
 )
 
+UPSCALER_MODELS=(
+    "https://huggingface.co/GerbyHorty76/videoloras/resolve/main/4xUltrasharp_4xUltrasharpV10.pt"
+)
 LORAS=(
-    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/WanFun.reworked.safetensors"
-    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/light.safetensors"
-    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/WanPusa.safetensors"
-    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/wan.reworked.safetensors"
+"https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank256_bf16.safetensors"
+"https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors"
+"https://huggingface.co/alibaba-pai/Wan2.2-Fun-Reward-LoRAs/resolve/main/Wan2.2-Fun-A14B-InP-low-noise-HPS2.1.safetensors"
+"https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Pusa/Wan21_PusaV1_LoRA_14B_rank512_bf16.safetensors"
 )
 
 DEFFUSION=(
-    "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/WanModel.safetensors"
-)
+"https://huggingface.co/Tongyi-MAI/Z-Image/resolve/main/transformer/diffusion_pytorch_model-00001-of-00002.safetensors"
+"https://huggingface.co/Kijai/WanVideo_comfy_fp8_scaled/resolve/main/Wan22Animate/Wan2_2-Animate-14B_fp8_scaled_e4m3fn_KJ_v2.safetensors"
 
+)
 ### ─────────────────────────────────────────────
 ### DO NOT EDIT BELOW UNLESS YOU KNOW WHAT YOU ARE DOING
 ### ─────────────────────────────────────────────
@@ -68,9 +70,9 @@ DEFFUSION=(
 function provisioning_start() {
     echo ""
     echo "##############################################"
-    echo "#     ебашим жоска и мрачно                  #"
-    echo "#        gazik X-MODE setup 2025-2026        #"
-    echo "#             бабки бабки                    #"
+    echo "# ебашим жоска и мрачно                      #"
+    echo "# gazik X-MODE setup 2025-2026               #"
+    echo "# бабки бабки                                #"
     echo "##############################################"
     echo ""
 
@@ -80,22 +82,25 @@ function provisioning_start() {
     provisioning_get_nodes
     provisioning_get_pip_packages
 
-    provisioning_get_files "${COMFYUI_DIR}/models/clip" "${CLIP_MODELS[@]}"
-    provisioning_get_files "${COMFYUI_DIR}/models/clip_vision" "${CLIP_VISION[@]}"
-    provisioning_get_files "${COMFYUI_DIR}/models/text_encoders" "${TEXT_ENCODERS[@]}"
-    provisioning_get_files "${COMFYUI_DIR}/models/vae" "${VAE_MODELS[@]}"
-    provisioning_get_files "${COMFYUI_DIR}/models/detection" "${DETECTION_MODELS[@]}"
-    provisioning_get_files "${COMFYUI_DIR}/models/loras" "${LORAS[@]}"
-    provisioning_get_files "${COMFYUI_DIR}/models/diffusion_models" "${DEFFUSION[@]}"
+    provisioning_get_files "${COMFYUI_DIR}/models/clip"               "${CLIP_MODELS[@]}"
+    provisioning_get_files "${COMFYUI_DIR}/models/clip_vision"        "${CLIP_MODELS[@]}"
+    provisioning_get_files "${COMFYUI_DIR}/models/text_encoders"      "${TEXT_ENCODERS[@]}"
+    provisioning_get_files "${COMFYUI_DIR}/models/vae"                "${VAE_MODELS[@]}"
+    provisioning_get_files "${COMFYUI_DIR}/models/diffusion_models"   "${DIFFUSION_MODELS[@]}"
+
+    provisioning_get_files "${COMFYUI_DIR}/models/detection"   "${DETECTION_MODELS[@]}"
+    provisioning_get_files "${COMFYUI_DIR}/models/loras"   "${LORAS[@]}"
+    provisioning_get_files "${COMFYUI_DIR}/models/upscale_models"     "${UPSCALER_MODELS[@]}"
+     provisioning_get_files "${COMFYUI_DIR}/models/diffusion_models"     "${DEFFUSION[@]}"
 
     echo ""
-    echo "Газик все настроїв → Запускаємо ComfyUI..."
+    echo "Газик настроил → Starting ComfyUI..."
     echo ""
 }
 
 function provisioning_clone_comfyui() {
     if [[ ! -d "${COMFYUI_DIR}" ]]; then
-        echo "Газик клоную ComfyUI..."
+        echo "Газик клонирует ComfyUI..."
         git clone https://github.com/comfyanonymous/ComfyUI.git "${COMFYUI_DIR}"
     fi
     cd "${COMFYUI_DIR}"
@@ -103,21 +108,21 @@ function provisioning_clone_comfyui() {
 
 function provisioning_install_base_reqs() {
     if [[ -f requirements.txt ]]; then
-        echo "Газик встановлює base requirements..."
+        echo "Газик установливает base requirements..."
         pip install --no-cache-dir -r requirements.txt
     fi
 }
 
 function provisioning_get_apt_packages() {
     if [[ ${#APT_PACKAGES[@]} -gt 0 ]]; then
-        echo "Газик встановлює apt packages..."
+        echo "Газик устанавливает apt packages..."
         sudo apt update && sudo apt install -y "${APT_PACKAGES[@]}"
     fi
 }
 
 function provisioning_get_pip_packages() {
     if [[ ${#PIP_PACKAGES[@]} -gt 0 ]]; then
-        echo "Газик встановлює extra pip packages..."
+        echo "Газик устанавливает extra pip packages..."
         pip install --no-cache-dir "${PIP_PACKAGES[@]}"
     fi
 }
@@ -128,7 +133,6 @@ function provisioning_get_nodes() {
 
     for repo in "${NODES[@]}"; do
         dir="${repo##*/}"
-        dir="${dir%.git}"  # прибираємо .git якщо є
         path="./${dir}"
 
         if [[ -d "$path" ]]; then
@@ -152,8 +156,9 @@ function provisioning_get_files() {
     local dir="$1"
     shift
     local files=("$@")
+
     mkdir -p "$dir"
-    echo "Скачивання ${#files[@]} файлів → $dir..."
+    echo "Скачивание ${#files[@]} file(s) → $dir..."
 
     for url in "${files[@]}"; do
         echo "→ $url"
@@ -163,17 +168,18 @@ function provisioning_get_files() {
         elif [[ -n "$CIVITAI_TOKEN" && "$url" =~ civitai\.com ]]; then
             auth_header="--header=Authorization: Bearer $CIVITAI_TOKEN"
         fi
+
         wget $auth_header -nc --content-disposition --show-progress -e dotbytes=4M -P "$dir" "$url" || echo " [!] Download failed: $url"
         echo ""
     done
 }
 
-# Запуск provisioning
+# Запуск provisioning если не отключен
 if [[ ! -f /.noprovisioning ]]; then
     provisioning_start
 fi
 
 # Запуск ComfyUI
-echo "=== Газик запускає ComfyUI ==="
+echo "=== Газик запускает ComfyUI ==="
 cd "${COMFYUI_DIR}"
 python main.py --listen 0.0.0.0 --port 8188
