@@ -1,18 +1,35 @@
 #!/bin/bash
 set -e
+
 source /venv/main/bin/activate
 
 WORKSPACE=${WORKSPACE:-/workspace}
 COMFYUI_DIR="${WORKSPACE}/ComfyUI"
 
-echo "=== ComfyUI AUTO PROVISIONING (LATEST MODE) ==="
+echo "========================================="
+echo "=== COMFYUI AUTO PROVISIONING (WAN) ==="
+echo "========================================="
+
+# ─────────────────────────────
+# OPTIONAL PACKAGES
+# ─────────────────────────────
 
 APT_PACKAGES=()
-PIP_PACKAGES=()
+
+PIP_PACKAGES=(
+    "hf_transfer"
+)
+
+# ─────────────────────────────
+# ENV
+# ─────────────────────────────
+
+export HF_HUB_ENABLE_HF_TRANSFER=1
 
 # ─────────────────────────────
 # CUSTOM NODES
 # ─────────────────────────────
+
 NODES=(
     "https://github.com/kijai/ComfyUI-WanVideoWrapper"
     "https://github.com/chflame163/ComfyUI_LayerStyle"
@@ -32,78 +49,100 @@ NODES=(
 # MODELS
 # ─────────────────────────────
 
-CLIP_MODELS=(
-"https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/klip_vision.safetensors"
+# WAN DIFFUSION MODEL
+DIFFUSION_MODELS=(
+"https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_t2v_14B_bf16.safetensors"
 )
 
-CLIPS=(
+# CLIP VISION
+CLIP_VISION_MODELS=(
 "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors"
 )
 
+# TEXT ENCODER
 TEXT_ENCODERS=(
-"https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/text_enc.safetensors"
+"https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors"
 )
 
-UNET_MODELS=(
-"https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_bf16.safetensors"
-)
-
+# VAE
 VAE_MODELS=(
-"https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/vae.safetensors"
+"https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors"
 )
 
+# DETECTION MODELS
 DETECTION_MODELS=(
 "https://huggingface.co/Wan-AI/Wan2.2-Animate-14B/resolve/main/process_checkpoint/det/yolov10m.onnx"
 "https://huggingface.co/Kijai/vitpose_comfy/resolve/main/onnx/vitpose_h_wholebody_data.bin"
 "https://huggingface.co/Kijai/vitpose_comfy/resolve/main/onnx/vitpose_h_wholebody_model.onnx"
 )
 
+# LORAS
 LORAS=(
 "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/WanFun.reworked.safetensors"
-"https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/light.safetensors"
 "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/WanPusa.safetensors"
+"https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/light.safetensors"
 "https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/wan.reworked.safetensors"
 )
 
-CLIP_VISION=(
-"https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/klip_vision.safetensors"
-)
-
-DIFFUSION_MODELS=(
-"https://huggingface.co/wdsfdsdf/OFMHUB/resolve/main/WanModel.safetensors"
-)
-
 # ─────────────────────────────
-# CORE
+# START
 # ─────────────────────────────
 
 provisioning_start() {
+
     echo "########################################"
-    echo "# ComfyUI LATEST AUTO SETUP           #"
+    echo "# STARTING COMFYUI INSTALLATION       #"
     echo "########################################"
 
     provisioning_get_apt_packages
+
     provisioning_clone_comfyui
-    provisioning_install_base_reqs
+
+    provisioning_install_base_requirements
+
     provisioning_get_nodes
+
     provisioning_get_pip_packages
 
-    provisioning_get_files "${COMFYUI_DIR}/models/clip" "${CLIP_MODELS[@]}"
-    provisioning_get_files "${COMFYUI_DIR}/models/clip_vision" "${CLIP_VISION[@]}"
-    provisioning_get_files "${COMFYUI_DIR}/models/text_encoders" "${TEXT_ENCODERS[@]}"
-    provisioning_get_files "${COMFYUI_DIR}/models/vae" "${VAE_MODELS[@]}"
-    provisioning_get_files "${COMFYUI_DIR}/models/diffusion_models" "${DIFFUSION_MODELS[@]}"
-    provisioning_get_files "${COMFYUI_DIR}/models/detection" "${DETECTION_MODELS[@]}"
-    provisioning_get_files "${COMFYUI_DIR}/models/loras" "${LORAS[@]}"
+    echo "========================================="
+    echo "DOWNLOADING MODELS..."
+    echo "========================================="
 
-    echo "=== DONE → Starting ComfyUI ==="
+    provisioning_get_files \
+        "${COMFYUI_DIR}/models/diffusion_models" \
+        "${DIFFUSION_MODELS[@]}"
+
+    provisioning_get_files \
+        "${COMFYUI_DIR}/models/clip_vision" \
+        "${CLIP_VISION_MODELS[@]}"
+
+    provisioning_get_files \
+        "${COMFYUI_DIR}/models/text_encoders" \
+        "${TEXT_ENCODERS[@]}"
+
+    provisioning_get_files \
+        "${COMFYUI_DIR}/models/vae" \
+        "${VAE_MODELS[@]}"
+
+    provisioning_get_files \
+        "${COMFYUI_DIR}/models/detection" \
+        "${DETECTION_MODELS[@]}"
+
+    provisioning_get_files \
+        "${COMFYUI_DIR}/models/loras" \
+        "${LORAS[@]}"
+
+    echo "========================================="
+    echo "INSTALLATION COMPLETE"
+    echo "========================================="
 }
 
 # ─────────────────────────────
-# COMFYUI (LATEST FIX)
+# COMFYUI
 # ─────────────────────────────
 
 provisioning_clone_comfyui() {
+
     if [[ ! -d "${COMFYUI_DIR}" ]]; then
         echo "Cloning ComfyUI..."
         git clone https://github.com/comfyanonymous/ComfyUI.git "${COMFYUI_DIR}"
@@ -111,7 +150,8 @@ provisioning_clone_comfyui() {
 
     cd "${COMFYUI_DIR}"
 
-    echo "Updating ComfyUI to latest..."
+    echo "Updating ComfyUI..."
+
     git fetch origin
     git reset --hard origin/master
 }
@@ -120,73 +160,132 @@ provisioning_clone_comfyui() {
 # REQUIREMENTS
 # ─────────────────────────────
 
-provisioning_install_base_reqs() {
+provisioning_install_base_requirements() {
+
+    echo "Installing ComfyUI requirements..."
+
     pip install --no-cache-dir -r "${COMFYUI_DIR}/requirements.txt"
 }
 
 provisioning_get_apt_packages() {
+
     if [[ ${#APT_PACKAGES[@]} -gt 0 ]]; then
-        sudo apt update && sudo apt install -y "${APT_PACKAGES[@]}"
+        sudo apt update
+        sudo apt install -y "${APT_PACKAGES[@]}"
     fi
 }
 
 provisioning_get_pip_packages() {
+
     if [[ ${#PIP_PACKAGES[@]} -gt 0 ]]; then
         pip install --no-cache-dir "${PIP_PACKAGES[@]}"
     fi
 }
 
 # ─────────────────────────────
-# NODES (AUTO UPDATE FIX)
+# CUSTOM NODES
 # ─────────────────────────────
 
 provisioning_get_nodes() {
+
     mkdir -p "${COMFYUI_DIR}/custom_nodes"
+
     cd "${COMFYUI_DIR}/custom_nodes"
 
     for repo in "${NODES[@]}"; do
-        dir="${repo##*/}"
+
+        dir=$(basename "$repo" .git)
+
         path="./${dir}"
 
-        if [[ -d "$path" ]]; then
-            echo "Updating node: $dir"
-            (cd "$path" && git pull --ff-only || git reset --hard origin/master)
+        if [[ -d "${path}" ]]; then
+
+            echo "Updating node: ${dir}"
+
+            (
+                cd "${path}"
+
+                git fetch origin
+
+                git reset --hard origin/master || true
+
+                git pull --rebase || true
+            )
+
         else
-            echo "Cloning node: $dir"
-            git clone "$repo" "$path" --recursive
+
+            echo "Cloning node: ${dir}"
+
+            git clone --recursive "${repo}" "${path}"
         fi
 
         if [[ -f "${path}/requirements.txt" ]]; then
+
+            echo "Installing requirements for ${dir}"
+
             pip install --no-cache-dir -r "${path}/requirements.txt" || true
         fi
     done
 }
 
 # ─────────────────────────────
-# FILES
+# MODEL DOWNLOADER
 # ─────────────────────────────
 
 provisioning_get_files() {
+
     local dir="$1"
+
     shift
+
     local files=("$@")
 
     mkdir -p "$dir"
 
+    cd "$dir"
+
     for url in "${files[@]}"; do
-        echo "Downloading: $url"
-        wget -nc --content-disposition --show-progress -P "$dir" "$url" || true
+
+        filename=$(basename "${url%%\?*}")
+
+        echo "-----------------------------------------"
+        echo "Downloading:"
+        echo "${filename}"
+        echo "-----------------------------------------"
+
+        if [[ -f "${filename}" ]]; then
+            echo "Already exists: ${filename}"
+            continue
+        fi
+
+        wget \
+            --content-disposition \
+            --show-progress \
+            -c \
+            "$url"
+
+        echo "DONE: ${filename}"
     done
 }
 
 # ─────────────────────────────
-# RUN
+# RUN PROVISIONING
 # ─────────────────────────────
 
 if [[ ! -f /.noprovisioning ]]; then
     provisioning_start
 fi
 
-echo "=== STARTING COMFYUI ==="
+# ─────────────────────────────
+# START COMFYUI
+# ─────────────────────────────
+
+echo "========================================="
+echo "STARTING COMFYUI..."
+echo "========================================="
+
 cd "${COMFYUI_DIR}"
-python main.py --listen 0.0.0.0 --port 8188
+
+python main.py \
+    --listen 0.0.0.0 \
+    --port 8188
